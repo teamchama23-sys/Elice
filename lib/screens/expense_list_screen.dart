@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../db/database_helper.dart';
 import 'add_expense_screen.dart';
+import 'import_csv_screen.dart';
 
 class ExpenseListScreen extends StatefulWidget {
   const ExpenseListScreen({super.key});
@@ -27,6 +28,23 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Expenses'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Import CSV',
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ImportCsvScreen()),
+              );
+              if (result != null) _load();
+              _load();
+            },
+          ),
+        ],
+      ),
       body: _expenses.isEmpty
           ? const Center(child: Text('No expenses yet. Tap + to add one.'))
           : ListView.builder(

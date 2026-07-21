@@ -18,3 +18,5 @@ dependencies:
 
 flutter:
   uses-material-design: true
+  csv: ^5.1.1
+  file_picker: ^6.1.1

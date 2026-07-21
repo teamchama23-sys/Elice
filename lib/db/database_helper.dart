@@ -40,6 +40,16 @@ class DatabaseHelper {
     return db.insert('expenses', e.toMap());
   }
 
+  Future<int> insertExpenses(List<Expense> expenses) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final e in expenses) {
+      batch.insert('expenses', e.toMap());
+    }
+    final results = await batch.commit(noResult: false);
+    return results.length;
+  }
+
   Future<List<Expense>> getAllExpenses() async {
     final db = await database;
     final maps = await db.query('expenses', orderBy: 'date DESC');
