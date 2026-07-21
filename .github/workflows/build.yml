@@ -43,30 +43,30 @@ jobs:
       - name: Force compileSdk 36 for all plugin modules (root project)
         run: |
           if [ -f android/build.gradle.kts ]; then
-            cat >> android/build.gradle.kts << 'GRADLE_EOF'
-
-subprojects {
-    afterEvaluate {
-        extensions.findByType<com.android.build.gradle.BaseExtension>()?.let { ext ->
-            ext.compileSdkVersion(36)
-        }
-    }
-}
-GRADLE_EOF
+            {
+              echo ""
+              echo "subprojects {"
+              echo "    afterEvaluate {"
+              echo "        extensions.findByType<com.android.build.gradle.BaseExtension>()?.let { ext ->"
+              echo "            ext.compileSdkVersion(36)"
+              echo "        }"
+              echo "    }"
+              echo "}"
+            } >> android/build.gradle.kts
           fi
           if [ -f android/build.gradle ]; then
-            cat >> android/build.gradle << 'GRADLE_EOF'
-
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            project.android {
-                compileSdkVersion 36
-            }
-        }
-    }
-}
-GRADLE_EOF
+            {
+              echo ""
+              echo "subprojects {"
+              echo "    afterEvaluate { project ->"
+              echo "        if (project.hasProperty(\"android\")) {"
+              echo "            project.android {"
+              echo "                compileSdkVersion 36"
+              echo "            }"
+              echo "        }"
+              echo "    }"
+              echo "}"
+            } >> android/build.gradle
           fi
 
       - name: Show resulting SDK config (debug)
