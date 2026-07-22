@@ -40,42 +40,23 @@ jobs:
             sed -i -E '/^[[:space:]]*targetSdkVersion\b/ s/.*/        targetSdkVersion 36/' android/app/build.gradle
           fi
 
-      - name: Force compileSdk 36 for all plugin modules (root project)
-        run: |
-          if [ -f android/build.gradle.kts ]; then
-            {
-              echo ""
-              echo "subprojects {"
-              echo "    plugins.withId(\"com.android.library\") {"
-              echo "        extensions.configure<com.android.build.gradle.LibraryExtension> {"
-              echo "            compileSdk = 36"
-              echo "        }"
-              echo "    }"
-              echo "}"
-            } >> android/build.gradle.kts
-          fi
-          if [ -f android/build.gradle ]; then
-            {
-              echo ""
-              echo "subprojects {"
-              echo "    plugins.withId(\"com.android.library\") {"
-              echo "        android {"
-              echo "            compileSdkVersion 36"
-              echo "        }"
-              echo "    }"
-              echo "}"
-            } >> android/build.gradle
-          fi
-
-      - name: Show resulting SDK config (debug)
-        run: |
-          echo "--- root build.gradle.kts tail ---"
-          [ -f android/build.gradle.kts ] && tail -20 android/build.gradle.kts || true
-          echo "--- root build.gradle tail ---"
-          [ -f android/build.gradle ] && tail -20 android/build.gradle || true
-
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Patch file_picker's own compileSdk in pub cache
+        run: |
+          PICKER_DIR=$(find "$HOME/.pub-cache/hosted" -maxdepth 2 -iname "file_picker-*" -type d | head -n 1)
+          echo "file_picker package found at: $PICKER_DIR"
+          if [ -n "$PICKER_DIR" ] && [ -f "$PICKER_DIR/android/build.gradle.kts" ]; then
+            sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 36/' "$PICKER_DIR/android/build.gradle.kts"
+            echo "--- patched build.gradle.kts ---"
+            grep -i compileSdk "$PICKER_DIR/android/build.gradle.kts"
+          fi
+          if [ -n "$PICKER_DIR" ] && [ -f "$PICKER_DIR/android/build.gradle" ]; then
+            sed -i -E 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 36/' "$PICKER_DIR/android/build.gradle"
+            echo "--- patched build.gradle ---"
+            grep -i compileSdk "$PICKER_DIR/android/build.gradle"
+          fi
 
       - name: Build APK
         run: flutter build apk --release
