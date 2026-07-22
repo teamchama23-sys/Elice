@@ -45,7 +45,6 @@ jobs:
           mkdir -p assets/models
           curl -f -L --retry 3 -o assets/models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
             "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
-          echo "--- downloaded model file ---"
           ls -lh assets/models/
 
       - name: Get dependencies
@@ -54,12 +53,26 @@ jobs:
       - name: Patch file_picker's own compileSdk in pub cache
         run: |
           PICKER_DIR=$(find "$HOME/.pub-cache/hosted" -maxdepth 2 -iname "file_picker-*" -type d | head -n 1)
-          echo "file_picker package found at: $PICKER_DIR"
           for GRADLE_FILE in "$PICKER_DIR/android/build.gradle.kts" "$PICKER_DIR/android/build.gradle"; do
             if [ -f "$GRADLE_FILE" ]; then
               sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*\(?[0-9]+\)?/compileSdk 36/g' "$GRADLE_FILE"
             fi
           done
+
+      - name: Patch fllama's deprecated proguard reference in pub cache
+        run: |
+          FLLAMA_DIR=$(find "$HOME/.pub-cache/hosted" -maxdepth 2 -iname "fllama-*" -type d | head -n 1)
+          echo "fllama package found at: $FLLAMA_DIR"
+          GRADLE_FILE="$FLLAMA_DIR/android/build.gradle"
+          if [ -f "$GRADLE_FILE" ]; then
+            echo "--- before patch ---"
+            grep -n "proguard-android.txt" "$GRADLE_FILE" || echo "(pattern not found)"
+            sed -i "s/proguard-android\.txt/proguard-android-optimize.txt/g" "$GRADLE_FILE"
+            echo "--- after patch ---"
+            grep -n "proguard-android-optimize.txt" "$GRADLE_FILE" || echo "(pattern still not found)"
+          else
+            echo "build.gradle not found at expected path"
+          fi
 
       - name: Build APK
         run: flutter build apk --release
