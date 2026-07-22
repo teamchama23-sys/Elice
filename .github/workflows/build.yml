@@ -23,6 +23,11 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Accept Android SDK licenses and install NDK
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager --install "ndk;28.0.12433566" || true
+
       - name: Generate Android platform files if missing
         run: |
           if [ ! -d "android" ]; then
@@ -62,16 +67,9 @@ jobs:
       - name: Patch fllama's deprecated proguard reference in pub cache
         run: |
           FLLAMA_DIR=$(find "$HOME/.pub-cache/hosted" -maxdepth 2 -iname "fllama-*" -type d | head -n 1)
-          echo "fllama package found at: $FLLAMA_DIR"
           GRADLE_FILE="$FLLAMA_DIR/android/build.gradle"
           if [ -f "$GRADLE_FILE" ]; then
-            echo "--- before patch ---"
-            grep -n "proguard-android.txt" "$GRADLE_FILE" || echo "(pattern not found)"
             sed -i "s/proguard-android\.txt/proguard-android-optimize.txt/g" "$GRADLE_FILE"
-            echo "--- after patch ---"
-            grep -n "proguard-android-optimize.txt" "$GRADLE_FILE" || echo "(pattern still not found)"
-          else
-            echo "build.gradle not found at expected path"
           fi
 
       - name: Build APK
