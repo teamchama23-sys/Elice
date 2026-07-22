@@ -47,16 +47,18 @@ jobs:
         run: |
           PICKER_DIR=$(find "$HOME/.pub-cache/hosted" -maxdepth 2 -iname "file_picker-*" -type d | head -n 1)
           echo "file_picker package found at: $PICKER_DIR"
-          if [ -n "$PICKER_DIR" ] && [ -f "$PICKER_DIR/android/build.gradle.kts" ]; then
-            sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 36/' "$PICKER_DIR/android/build.gradle.kts"
-            echo "--- patched build.gradle.kts ---"
-            grep -i compileSdk "$PICKER_DIR/android/build.gradle.kts"
-          fi
-          if [ -n "$PICKER_DIR" ] && [ -f "$PICKER_DIR/android/build.gradle" ]; then
-            sed -i -E 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 36/' "$PICKER_DIR/android/build.gradle"
-            echo "--- patched build.gradle ---"
-            grep -i compileSdk "$PICKER_DIR/android/build.gradle"
-          fi
+
+          for GRADLE_FILE in "$PICKER_DIR/android/build.gradle.kts" "$PICKER_DIR/android/build.gradle"; do
+            if [ -f "$GRADLE_FILE" ]; then
+              echo "--- before patch: $GRADLE_FILE ---"
+              grep -iE 'compileSdk' "$GRADLE_FILE" || echo "(no compileSdk line found)"
+
+              sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*\(?[0-9]+\)?/compileSdk 36/g' "$GRADLE_FILE"
+
+              echo "--- after patch: $GRADLE_FILE ---"
+              grep -iE 'compileSdk' "$GRADLE_FILE" || echo "(no compileSdk line found)"
+            fi
+          done
 
       - name: Build APK
         run: flutter build apk --release
