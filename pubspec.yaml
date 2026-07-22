@@ -17,6 +17,9 @@ dependencies:
   fl_chart: ^0.66.0
   csv: ^5.1.1
   file_picker: ^8.0.0
+  fllama: ^0.13.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/models/qwen2.5-1.5b-instruct-q4_k_m.gguf
