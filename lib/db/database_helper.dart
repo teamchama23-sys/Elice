@@ -4,6 +4,8 @@ import '../models/expense.dart';
 import '../models/investment.dart';
 import '../models/loan.dart';
 import '../models/savings_goal.dart';
+import '../models/invoice.dart';
+import '../models/ledger_entry.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -22,7 +24,7 @@ class DatabaseHelper {
     final path = join(dbPath, 'elice.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await _createAllTables(db);
       },
@@ -61,6 +63,31 @@ class DatabaseHelper {
               currentAmount REAL NOT NULL,
               currency TEXT NOT NULL,
               targetDate TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS invoices(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              clientName TEXT NOT NULL,
+              description TEXT NOT NULL,
+              amount REAL NOT NULL,
+              currency TEXT NOT NULL,
+              issueDate TEXT NOT NULL,
+              dueDate TEXT NOT NULL,
+              status TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS ledger_entries(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              description TEXT NOT NULL,
+              amount REAL NOT NULL,
+              type TEXT NOT NULL,
+              category TEXT NOT NULL,
+              currency TEXT NOT NULL,
+              date TEXT NOT NULL
             )
           ''');
         }
@@ -112,6 +139,29 @@ class DatabaseHelper {
         currentAmount REAL NOT NULL,
         currency TEXT NOT NULL,
         targetDate TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE invoices(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clientName TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL,
+        issueDate TEXT NOT NULL,
+        dueDate TEXT NOT NULL,
+        status TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ledger_entries(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        date TEXT NOT NULL
       )
     ''');
   }
@@ -204,5 +254,57 @@ class DatabaseHelper {
   Future<int> deleteSavingsGoal(int id) async {
     final db = await database;
     return db.delete('savings_goals', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- Invoices ----------
+  Future<int> insertInvoice(Invoice i) async {
+    final db = await database;
+    return db.insert('invoices', i.toMap());
+  }
+
+  Future<List<Invoice>> getAllInvoices() async {
+    final db = await database;
+    final maps = await db.query('invoices', orderBy: 'issueDate DESC');
+    return maps.map((m) => Invoice.fromMap(m)).toList();
+  }
+
+  Future<int> updateInvoiceStatus(int id, String status) async {
+    final db = await database;
+    return db.update('invoices', {'status': status}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteInvoice(int id) async {
+    final db = await database;
+    return db.delete('invoices', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- Ledger Entries ----------
+  Future<int> insertLedgerEntry(LedgerEntry e) async {
+    final db = await database;
+    return db.insert('ledger_entries', e.toMap());
+  }
+
+  Future<List<LedgerEntry>> getAllLedgerEntries() async {
+    final db = await database;
+    final maps = await db.query('ledger_entries', orderBy: 'date DESC');
+    return maps.map((m) => LedgerEntry.fromMap(m)).toList();
+  }
+
+  Future<int> deleteLedgerEntry(int id) async {
+    final db = await database;
+    return db.delete('ledger_entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getNetIncome() async {
+    final db = await database;
+    final income = await db.rawQuery(
+      "SELECT SUM(amount) as total FROM ledger_entries WHERE type = 'Income'",
+    );
+    final expense = await db.rawQuery(
+      "SELECT SUM(amount) as total FROM ledger_entries WHERE type = 'Expense'",
+    );
+    final incomeTotal = (income.first['total'] as num?)?.toDouble() ?? 0;
+    final expenseTotal = (expense.first['total'] as num?)?.toDouble() ?? 0;
+    return incomeTotal - expenseTotal;
   }
 }
