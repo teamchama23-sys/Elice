@@ -24,7 +24,7 @@ class DatabaseHelper {
     final path = join(dbPath, 'elice.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createAllTables(db);
       },
@@ -88,6 +88,14 @@ class DatabaseHelper {
               category TEXT NOT NULL,
               currency TEXT NOT NULL,
               date TEXT NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS settings(
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL
             )
           ''');
         }
@@ -162,6 +170,12 @@ class DatabaseHelper {
         category TEXT NOT NULL,
         currency TEXT NOT NULL,
         date TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE settings(
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       )
     ''');
   }
@@ -295,16 +309,20 @@ class DatabaseHelper {
     return db.delete('ledger_entries', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<double> getNetIncome() async {
+  // ---------- Settings ----------
+  Future<void> setSetting(String key, String value) async {
     final db = await database;
-    final income = await db.rawQuery(
-      "SELECT SUM(amount) as total FROM ledger_entries WHERE type = 'Income'",
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    final expense = await db.rawQuery(
-      "SELECT SUM(amount) as total FROM ledger_entries WHERE type = 'Expense'",
-    );
-    final incomeTotal = (income.first['total'] as num?)?.toDouble() ?? 0;
-    final expenseTotal = (expense.first['total'] as num?)?.toDouble() ?? 0;
-    return incomeTotal - expenseTotal;
+  }
+
+  Future<String?> getSetting(String key) async {
+    final db = await database;
+    final result = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    if (result.isEmpty) return null;
+    return result.first['value'] as String;
   }
 }

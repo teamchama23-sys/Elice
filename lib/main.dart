@@ -4,6 +4,9 @@ import 'screens/analytics_screen.dart';
 import 'screens/investment_list_screen.dart';
 import 'screens/loan_list_screen.dart';
 import 'screens/savings_goal_list_screen.dart';
+import 'screens/invoice_list_screen.dart';
+import 'screens/ledger_list_screen.dart';
+import 'screens/tax_estimate_screen.dart';
 import 'screens/ai_chat_placeholder_screen.dart';
 
 void main() {
@@ -36,9 +39,12 @@ class RootNav extends StatefulWidget {
 
 class _RootNavState extends State<RootNav> {
   int _section = 0; // 0 = Data/Analytics, 1 = AI Chat
-  int _dataTab = 0; // 0 Expenses, 1 Analytics, 2 Investments, 3 Loans, 4 Savings
+  int _dataTab = 0;
 
-  final List<String> _tabLabels = ['Expenses', 'Analytics', 'Investments', 'Loans', 'Savings'];
+  final List<String> _tabLabels = [
+    'Expenses', 'Analytics', 'Investments', 'Loans', 'Savings',
+    'Invoices', 'Ledger', 'Tax'
+  ];
 
   Widget _dataBody() {
     switch (_dataTab) {
@@ -52,6 +58,12 @@ class _RootNavState extends State<RootNav> {
         return const LoanListScreen();
       case 4:
         return const SavingsGoalListScreen();
+      case 5:
+        return const InvoiceListScreen();
+      case 6:
+        return const LedgerListScreen();
+      case 7:
+        return const TaxEstimateScreen();
       default:
         return const ExpenseListScreen();
     }
